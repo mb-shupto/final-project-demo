@@ -1,0 +1,256 @@
+// dart
+// File: `lib/screens/product_list_screen.dart`
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/inventory_provider.dart';
+import '../models/product.dart';
+
+class ProductListScreen extends StatefulWidget {
+  const ProductListScreen({super.key});
+
+  @override
+  State<ProductListScreen> createState() => _ProductListScreenState();
+}
+
+class _ProductListScreenState extends State<ProductListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Show modal bottom sheet to Add or Edit a product
+  void _showAddEditDialog({Product? product}) {
+    final isEditing = product != null;
+    final nameController = TextEditingController(text: product?.name ?? '');
+    final quantityController =
+    TextEditingController(text: product?.quantity.toString() ?? '');
+    final imageUrlController =
+    TextEditingController(text: product?.imageUrl ?? '');
+    String selectedCategory = product?.category ?? 'General';
+
+    // Predefined categories to show in the modal
+    const List<String> predefinedCategories = [
+      'General',
+      'Electronics',
+      'Groceries',
+      'Clothing',
+      'Home',
+      'Beauty',
+      'Stationery',
+      'Beverages',
+      'Toys',
+      'Hardware',
+    ];
+
+    final provider = Provider.of<InventoryProvider>(context, listen: false);
+
+    // Merge provider categories (exclude 'All') with predefined set and keep unique
+    final mergedSet = <String>{};
+    mergedSet.addAll(predefinedCategories);
+    mergedSet.addAll(provider.categories.where((c) => c != 'All'));
+    final categories = mergedSet.toList()..sort();
+
+    // Ensure selectedCategory exists in the list
+    if (!categories.contains(selectedCategory)) {
+      categories.insert(0, selectedCategory);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        // Use StatefulBuilder so the dropdown updates visually when changed
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isEditing ? 'Edit Product' : 'Add New Product',
+                      style:
+                      const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Product Name',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: quantityController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Quantity',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: categories.map((cat) {
+                        return DropdownMenuItem(value: cat, child: Text(cat));
+                      }).toList(),
+                      onChanged: (value) {
+                        setModalState(() {
+                          selectedCategory = value ?? 'General';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: imageUrlController,
+                      decoration: const InputDecoration(
+                        labelText: 'Image URL (optional)',
+                        hintText: 'https://example.com/image.jpg',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (nameController.text.isEmpty ||
+                                quantityController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please fill required fields')),
+                              );
+                              return;
+                            }
+
+                            final newProduct = Product(
+                              id: isEditing ? product!.id : null,
+                              name: nameController.text.trim(),
+                              quantity: int.tryParse(quantityController.text) ?? 0,
+                              category: selectedCategory,
+                              imageUrl: imageUrlController.text.isEmpty
+                                  ? null
+                                  : imageUrlController.text.trim(),
+                            );
+
+                            if (isEditing) {
+                              await Provider.of<InventoryProvider>(context, listen: false)
+                                  .updateProduct(newProduct);
+                            } else {
+                              await Provider.of<InventoryProvider>(context, listen: false)
+                                  .addProduct(newProduct);
+                            }
+
+                            Navigator.pop(context);
+                          },
+                          child: Text(isEditing ? 'Update' : 'Add'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<InventoryProvider>(context);
+    final products = provider.products ?? [];
+    final query = _searchController.text.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? products
+        : products.where((p) => p.name.toLowerCase().contains(query)).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Products'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                labelText: 'Search products',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          Expanded(
+            child: filtered.isEmpty
+                ? const Center(child: Text('No products found'))
+                : ListView.builder(
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final p = filtered[index];
+                return ListTile(
+                  leading: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                      ? Image.network(p.imageUrl!, width: 48, height: 48, fit: BoxFit.cover)
+                      : const Icon(Icons.inventory_2),
+                  title: Text(p.name),
+                  subtitle: Text('Qty: ${p.quantity} \u2022 ${p.category ?? ''}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _showAddEditDialog(product: p),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () async {
+                          final id = p.id;
+                          if (id == null || id.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Cannot delete product: missing id')),
+                            );
+                            return;
+                          }
+                          await provider.deleteProduct(id);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddEditDialog(),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
