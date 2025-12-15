@@ -43,7 +43,7 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   void _applyFiltersAndSort() {
-    List<Product> temp = _products;
+    List<Product> temp = List.from(_products);
 
     // Apply search
     if (_searchQuery.isNotEmpty) {
@@ -60,12 +60,11 @@ class InventoryProvider extends ChangeNotifier {
     if (_sortBy == 'category') {
       temp.sort((a, b) => a.category.compareTo(b.category));
     }
-    // 'default' = no extra sort (Firestore returns in natural order, usually newest first)
 
     _filteredProducts = temp;
   }
 
-  // Load and listen to real-time updates
+  // Load and listen to real-time updates (with onError handling)
   void _loadProducts() {
     _isLoading = true;
     notifyListeners();
@@ -75,25 +74,14 @@ class InventoryProvider extends ChangeNotifier {
       _applyFiltersAndSort();
       _isLoading = false;
       notifyListeners();
+    }, onError: (error) {
+      // Handle permission errors and other stream errors gracefully.
+      print('Products stream error in InventoryProvider: $error');
+      _products = [];
+      _filteredProducts = [];
+      _isLoading = false;
+      notifyListeners();
     });
-  }
-
-  // Apply search + category filter
-  void _applyFilters() {
-    List<Product> temp = _products;
-
-    // Apply search filter
-    if (_searchQuery.isNotEmpty) {
-      temp = temp.where((product) =>
-          product.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
-    }
-
-    // Apply category filter
-    if (_selectedCategory != 'All') {
-      temp = temp.where((product) => product.category == _selectedCategory).toList();
-    }
-
-    _filteredProducts = temp;
   }
 
   // Public methods for UI to call
@@ -120,7 +108,6 @@ class InventoryProvider extends ChangeNotifier {
   // CRUD operations
   Future<void> addProduct(Product product) async {
     await _firestoreService.addProduct(product);
-    // No need to notifyListeners() here – stream will handle it
   }
 
   Future<void> updateProduct(Product product) async {
@@ -135,6 +122,6 @@ class InventoryProvider extends ChangeNotifier {
   int get totalProducts => _products.length;
 
   int get lowStockCount {
-    return _products.where((p) => p.quantity < 10).length; // Alert if < 10
+    return _products.where((p) => p.quantity < 10).length;
   }
 }

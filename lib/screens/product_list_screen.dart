@@ -1,5 +1,3 @@
-// dart
-// File: `lib/screens/product_list_screen.dart`
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
@@ -15,6 +13,7 @@ class ProductListScreen extends StatefulWidget {
 
 class _ProductListScreenState extends State<ProductListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _sortBy = 'default';
 
   @override
   void dispose() {
@@ -34,16 +33,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     // Predefined categories to show in the modal
     const List<String> predefinedCategories = [
-      'General',
-      'Electronics',
       'Groceries',
-      'Clothing',
-      'Home',
-      'Beauty',
       'Stationery',
       'Beverages',
-      'Toys',
-      'Hardware',
+      'Snacks',
+      'Confectionery'
     ];
 
     final provider = Provider.of<InventoryProvider>(context, listen: false);
@@ -82,8 +76,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   children: [
                     Text(
                       isEditing ? 'Edit Product' : 'Add New Product',
-                      style:
-                      const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 20),
                     TextField(
@@ -182,8 +175,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<InventoryProvider>(context);
-    final products = provider.products ?? [];
+    final inventoryProvider = Provider.of<InventoryProvider>(context);
+    final products = inventoryProvider.products ?? [];
     final query = _searchController.text.trim().toLowerCase();
     final filtered = query.isEmpty
         ? products
@@ -200,7 +193,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
             onPressed: () async {
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
               await authProvider.signOut();
-              // AuthWrapper will automatically switch to LoginScreen
             },
           ),
         ],
@@ -208,15 +200,52 @@ class _ProductListScreenState extends State<ProductListScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Search products',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (_) => setState(() {}),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      inventoryProvider.setSearchQuery(value);
+                      setState(() {}); // update suffixIcon and filtered results
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search products...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          inventoryProvider.setSearchQuery('');
+                          setState(() {});
+                        },
+                      )
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                DropdownButton<String>(
+                  value: _sortBy,
+                  icon: const Icon(Icons.sort),
+                  underline: Container(height: 2, color: Colors.blue),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _sortBy = newValue;
+                      });
+                      inventoryProvider.setSortBy(newValue);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(value: 'default', child: Text('Default')),
+                    DropdownMenuItem(value: 'category', child: Text('By Category')),
+                  ],
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -249,7 +278,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             );
                             return;
                           }
-                          await provider.deleteProduct(id);
+                          await inventoryProvider.deleteProduct(id);
                         },
                       ),
                     ],
