@@ -4,6 +4,7 @@ import '../services/firestore_service.dart';
 
 class InventoryProvider extends ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
+  String _sortBy = 'default';
 
   // Master list of all products from Firestore
   List<Product> _products = [];
@@ -33,6 +34,35 @@ class InventoryProvider extends ChangeNotifier {
 
   InventoryProvider() {
     _loadProducts();
+  }
+
+  void setSortBy(String sortType) {
+    _sortBy = sortType;
+    _applyFiltersAndSort();
+    notifyListeners();
+  }
+
+  void _applyFiltersAndSort() {
+    List<Product> temp = _products;
+
+    // Apply search
+    if (_searchQuery.isNotEmpty) {
+      temp = temp.where((product) =>
+          product.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    }
+
+    // Apply category filter
+    if (_selectedCategory != 'All') {
+      temp = temp.where((product) => product.category == _selectedCategory).toList();
+    }
+
+    // Apply sorting
+    if (_sortBy == 'category') {
+      temp.sort((a, b) => a.category.compareTo(b.category));
+    }
+    // 'default' = no extra sort (Firestore returns in natural order, usually newest first)
+
+    _filteredProducts = temp;
   }
 
   // Load and listen to real-time updates
