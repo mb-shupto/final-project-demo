@@ -72,7 +72,7 @@ class InventoryProvider extends ChangeNotifier {
 
     _firestoreService.getProductsStream().listen((List<Product> productList) {
       _products = productList;
-      _applyFilters();
+      _applyFiltersAndSort();
       _isLoading = false;
       notifyListeners();
     });
@@ -100,20 +100,20 @@ class InventoryProvider extends ChangeNotifier {
 
   void setSearchQuery(String query) {
     _searchQuery = query;
-    _applyFilters();
+    _applyFiltersAndSort();
     notifyListeners();
   }
 
   void setCategoryFilter(String category) {
     _selectedCategory = category;
-    _applyFilters();
+    _applyFiltersAndSort();
     notifyListeners();
   }
 
   void clearFilters() {
     _searchQuery = '';
     _selectedCategory = 'All';
-    _applyFilters();
+    _applyFiltersAndSort();
     notifyListeners();
   }
 
