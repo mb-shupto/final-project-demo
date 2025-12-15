@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
-import 'product_list_screen.dart'; // We'll create this soon
+import 'product_list_screen.dart';
+import '../providers/auth_provider.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -12,6 +13,17 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Store Inventory Dashboard'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.signOut();
+              // AuthWrapper will automatically navigate to LoginScreen
+            },
+          ),
+        ],
       ),
       body: Consumer<InventoryProvider>(
         builder: (context, inventoryProvider, child) {

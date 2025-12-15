@@ -1,42 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/product.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final String _collection = 'products';
 
-  // Add a new product
-  Future<void> addProduct(Product product) async {
-    await _db.collection(_collection).add(product.toMap());
-  }
+  // Get current user UID
+  String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
 
-  // Update an existing product
-  Future<void> updateProduct(Product product) async {
-    if (product.id == null) {
-      throw Exception("Product ID is required for update");
+  // Reference to user's products subcollection
+  CollectionReference get _userProductsRef {
+    if (_currentUid == null) {
+      throw Exception('User not authenticated');
     }
-    await _db.collection(_collection).doc(product.id).set(product.toMap(), SetOptions(merge: true));
+    return _db.collection('users').doc(_currentUid).collection('products');
   }
 
-  // Delete a product
+  // Add product
+  Future<void> addProduct(Product product) async {
+    await _userProductsRef.add(product.toMap());
+  }
+
+  // Update product
+  Future<void> updateProduct(Product product) async {
+    if (product.id == null) throw Exception('Product ID required');
+    await _userProductsRef.doc(product.id).set(product.toMap(), SetOptions(merge: true));
+  }
+
+  // Delete product
   Future<void> deleteProduct(String productId) async {
-    await _db.collection(_collection).doc(productId).delete();
+    await _userProductsRef.doc(productId).delete();
   }
 
-  // Get real-time stream of all products
+  // Real-time stream of user's products
   Stream<List<Product>> getProductsStream() {
-    return _db.collection(_collection).snapshots().map((snapshot) {
+    return _userProductsRef.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        return Product.fromMap(doc.data(), doc.id);
+        return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
     });
-  }
-
-  // Optional: Get products once (not real-time)
-  Future<List<Product>> getProducts() async {
-    QuerySnapshot snapshot = await _db.collection(_collection).get();
-    return snapshot.docs.map((doc) {
-      return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-    }).toList();
   }
 }
