@@ -38,6 +38,6 @@ ________________________________________
 
 -	Central inventory provider
 -	All screens read/write from a shared product list
--	
+  
 ________________________________________
 
