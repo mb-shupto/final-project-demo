@@ -1,16 +1,43 @@
 # final_project
 
-A new Flutter project.
+**Store Inventory Tracker**
 
-## Getting Started
+Project Story
+________________________________________
 
-This project is a starting point for a Flutter application.
+A small shop needs a simple inventory system where staff can add, edit, and track product quantities. 
+Everything syncs automatically across screens using Provider. Firebase stores all products.
 
-A few resources to get you started if this is your first Flutter project:
+________________________________________
+**Functionalities**
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+**1. Product Management**
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+-	Add product (name, quantity, category, image URL optional)
+-	Edit product
+-	Delete product
+  
+**2. Real-Time Quantity Updates**
+
+-	Changes reflect instantly across:
+-	Dashboard
+-	Product List
+-	Modal
+  
+**3. Search & Filtering**
+
+-	Search by product name
+-	Filter by category
+  
+**4. Product Detail Modal**
+
+-	Edit name, category, quantity
+-	Delete product
+  
+**5. Provider State Management**
+
+-	Central inventory provider
+-	All screens read/write from a shared product list
+-	
+________________________________________
+
