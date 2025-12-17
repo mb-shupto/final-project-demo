@@ -48,3 +48,7 @@ build/
 .packages
 .pub-cache/
 .pub/
+
+.lib/firebase_options.dart
+.android/app/google-services.json
+.ios/Runner/GoogleService-Info.plist
